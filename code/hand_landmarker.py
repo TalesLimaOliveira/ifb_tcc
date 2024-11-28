@@ -16,7 +16,7 @@ HandLandmarkerResult = mp.tasks.vision.HandLandmarkerResult
 VisionRunningMode = mp.tasks.vision.RunningMode
 
 # Função de callback para imprimir os resultados
-def print_result(result: HandLandmarkerResult, output_image: mp.Image, timestamp_ms: int):
+def print_result(result: HandLandmarkerResult, output_image: mp.Image, timestamp_ms: int): # type: ignore
     print('hand landmarker result: {}'.format(result))
 
 # Função para desenhar os landmarks na imagem

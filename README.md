@@ -1,4 +1,4 @@
-# 🌟 Trabalho de Conclução de Curso - Instituto Federal de Brasília 🌟
+# 🌟 Trabalho de Conclusão de Curso - Instituto Federal de Brasília 🌟
 
 ## RECONHECIMENTO E TRADUÇÃO DE FRASES EM LIBRAS UTILIZANDO REDES NEURAIS
 
