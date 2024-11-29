@@ -3,10 +3,11 @@
 ## RECONHECIMENTO E TRADUÇÃO DE FRASES EM LIBRAS UTILIZANDO REDES NEURAIS
 
 <p align="center">
-    <img src="https://img.shields.io/badge/Language-Python-blue" alt="Language">
-    <img src="https://img.shields.io/badge/Language-Julia-purple" alt="Language">
+    <img src="https://img.shields.io/badge/Language-Python-blue?logo=python" alt="Language">
+    <img src="https://img.shields.io/badge/Language-Julia-purple?logo=julia" alt="Language">
     <img src="https://img.shields.io/badge/Status-Active-success" alt="Status">
 </p>
+
 
 ## 👨‍🏫 Orientador
 - **Raimundo Vasconcelos**
