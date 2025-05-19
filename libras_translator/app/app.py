@@ -1,9 +1,9 @@
 import streamlit as st
 import cv2
-from camera import Camera
-from gesture_processing import GestureProcessor
-from neural_network import NeuralNetwork
-from utils import load_label_encoder
+from app.camera import Camera
+from app.gesture_processing import GestureProcessor
+from app.neural_network import NeuralNetwork
+from app.utils import load_label_encoder
 
 st.set_page_config(page_title="Reconhecimento de Gestos em Libras", layout="centered")
 st.title("Reconhecimento de Gestos em Libras com MediaPipe e Rede Neural")
