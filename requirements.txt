@@ -2,7 +2,10 @@ opencv-python
 mediapipe
 pandas
 numpy
-tensorflow
 pyarrow
 streamlit
 Pillow
+torch
+torchvision
+torchaudio
+transformers
