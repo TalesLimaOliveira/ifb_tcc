@@ -10,3 +10,5 @@ torchvision
 torchaudio
 transformers
 tqdm
+scikit-learn
+openai
