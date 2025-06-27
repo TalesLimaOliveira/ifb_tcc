@@ -399,6 +399,7 @@ FodyWeavers.xsd
 # JetBrains Rider
 *.sln.iml
 
-# Ignore dataset folder
-/dataset/
+# Ignore folders
+/dataset/processed/landmarks/
+/dataset/raw_data/
 roteiro ia - LIBRAS.txt
