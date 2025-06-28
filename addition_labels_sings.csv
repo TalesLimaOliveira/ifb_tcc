@@ -1,0 +1,5 @@
+video_path,landmark_path,file_id,participant,sign_id,phrase
+,,,author,00,C
+,,,author,01,O
+,,,author,02,S
+,,,author,03,W
