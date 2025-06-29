@@ -402,3 +402,4 @@ FodyWeavers.xsd
 # Ignore folders
 /dataset/processed/landmarks/
 /dataset/raw_data/
+/references/
