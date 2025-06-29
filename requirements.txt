@@ -13,3 +13,6 @@ tqdm
 scikit-learn
 openai
 cachetools
+beautifulsoup4
+lxml
+requests

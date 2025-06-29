@@ -4,14 +4,14 @@ import csv
 import time
 
 # Intervalo de IDs
-start_id = 1364
-end_id = 2000
+start_id = 2001
+end_id = 5000
 
 # URL base
 base_url = "https://libras.cin.ufpe.br/sign/"
 
 # Nome do arquivo CSV
-output_file = "labels_vlisbrasil_signs_3.csv"
+output_file = "labels_metadata.csv"
 
 # Abrindo arquivo CSV para escrita
 with open(output_file, mode="w", newline='', encoding="utf-8") as file:

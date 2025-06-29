@@ -1,72 +1,77 @@
 import os
-import csv
+import re
 import requests
 import pandas as pd
 from bs4 import BeautifulSoup
-from urllib.parse import urljoin
+from tqdm import tqdm
 
-# Parâmetros
-BASE_URL = "https://libras.cin.ufpe.br/sign/"
-VIDEO_FOLDER = "../dataset/raw_data/vlibrasil/"
-OUTPUT_CSV = "../labels_vlisbrasil_final.csv"
-INPUT_CSV = "../labels_vlisbrasil_sings.csv"
+# Configurações iniciais
+base_url = "https://libras.cin.ufpe.br/sign/"
+participant = "vlisbrasil"
+input_csv = "vlisbrasil_sing.csv"
+output_csv = "saida_videos.csv"
+output_rows = []
 
-# Cria a pasta se não existir
-os.makedirs(VIDEO_FOLDER, exist_ok=True)
+# Criar pasta de destino se não existir
+os.makedirs("videos", exist_ok=True)
 
-# Lê os sinais
-df_signs = pd.read_csv(INPUT_CSV)
+# Carregar o CSV de entrada
+df = pd.read_csv(input_csv)
 
-# Lista de registros para o CSV final
-final_data = []
+# Função para limpar o nome da pasta
+def format_folder_name(sign_id, phrase):
+    phrase_clean = re.sub(r'[^\w\s]', '', phrase).strip().replace(" ", "_")
+    return f"{sign_id}_{phrase_clean}"
 
-# Scraping e download
-for _, row in df_signs.iterrows():
-    sign_id = str(row["sign_id"]).strip()
-    phrase = str(row["phrase"]).strip()
-    url = urljoin(BASE_URL, sign_id)
-
+# Função para baixar vídeos da página
+def baixar_videos(sign_id, phrase):
+    url = f"{base_url}{sign_id}"
     try:
         response = requests.get(url)
-        if response.status_code != 200:
-            print(f"[ERRO] Não foi possível acessar {url}")
-            continue
+        response.raise_for_status()
+    except requests.RequestException as e:
+        print(f"Erro ao acessar {url}: {e}")
+        return
 
-        soup = BeautifulSoup(response.text, 'html.parser')
-        participants = soup.find_all("h2", class_="page-section-heading text-success mb-0")
-        videos = soup.find_all("video")
+    soup = BeautifulSoup(response.text, "html.parser")
+    video_tags = soup.find_all("video")
 
-        for i, (participant_tag, video_tag) in enumerate(zip(participants, videos)):
-            participant = participant_tag.text.strip()
-            source_tag = video_tag.find("source")
-            if not source_tag:
-                continue
-            video_url = source_tag["src"]
-            video_filename = video_url.split("/")[-1]
-            local_filename = os.path.join(VIDEO_FOLDER, video_filename)
+    folder_name = format_folder_name(sign_id, phrase)
+    folder_path = os.path.join("videos", folder_name)
+    os.makedirs(folder_path, exist_ok=True)
 
-            # Baixar o vídeo se não existir
-            if not os.path.exists(local_filename):
-                print(f"[↓] Baixando: {video_url}")
+    # Encontrar URLs de vídeos
+    for idx, video_tag in enumerate(video_tags):
+        source = video_tag.find("source")
+        if source and source.get("src", "").endswith(".mp4"):
+            video_url = source["src"]
+            video_name = os.path.basename(video_url)
+            video_path = os.path.join(folder_path, video_name)
+
+            # Baixar vídeo
+            try:
                 video_resp = requests.get(video_url, stream=True)
-                with open(local_filename, "wb") as f:
+                with open(video_path, "wb") as f:
                     for chunk in video_resp.iter_content(chunk_size=8192):
-                        if chunk:
-                            f.write(chunk)
+                        f.write(chunk)
 
-            # Salvar entrada
-            final_data.append({
-                "video_path": local_filename,
-                "file_name": video_filename,
-                "participant": participant,
-                "sing_id": sign_id,
-                "phrase": phrase
-            })
+                # Adicionar ao CSV de saída
+                output_rows.append({
+                    "video_path": os.path.relpath(video_path),
+                    "participant": participant,
+                    "sign_id": sign_id,
+                    "phrase": phrase
+                })
+            except Exception as e:
+                print(f"Erro ao baixar vídeo {video_url}: {e}")
 
-    except Exception as e:
-        print(f"[ERRO] Ao processar {url}: {e}")
+# Loop principal com barra de progresso
+for _, row in tqdm(df.iterrows(), total=len(df), desc="Baixando vídeos"):
+    sign_id = row["sign_id"]
+    phrase = row["phrase"]
+    baixar_videos(sign_id, phrase)
 
-# Salvar o CSV final
-df_output = pd.DataFrame(final_data)
-df_output.to_csv(OUTPUT_CSV, index=False)
-print(f"\nCSV final salvo como: {OUTPUT_CSV}")
+# Salvar CSV de saída
+saida_df = pd.DataFrame(output_rows)
+saida_df.to_csv(output_csv, index=False)
+print(f"\nDownload concluído. Arquivo de saída: {output_csv}")
