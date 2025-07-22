@@ -1,0 +1,26 @@
+# Traning 1: best_model_180725
+
+Optimized Model Configuration:
+  num_epochs: 50
+  batch_size: 4
+  learning_rate: 0.001
+  dropout: 0.3
+  emb_size: 64
+  hidden_size: 128
+  num_layers: 1
+  n_points: 42
+  vocab_size: 29794
+Model initialized and moved to cuda
+Model parameters: 3,953,442
+GPU Memory after model init: 0.02 GB
+
+Training samples: 22881
+Validation samples: 2860
+Training batches: 5720
+Validation batches: 715
+
+Final train loss: 6.1883
+Final validation loss: 6.2556
+Best model saved to: ../models/best_model_180725.pt
+
+---

@@ -1,0 +1,28 @@
+{
+  "model_name": "best_model_270625.pt",
+  "model_config": {
+    "n_points": 21,
+    "emb_size": 128,
+    "hidden_size": 256,
+    "vocab_size": 29794,
+    "num_layers": 1,
+    "dropout": 0.3,
+    "data_adaptation": "use_first_hand_only"
+  },
+  "data_dimensions": {
+    "keypoints_per_frame": 42,
+    "sequence_length_example": 151,
+    "coordinate_dimensions": 3
+  },
+  "accuracies": {
+    "train": 0.0010430559830375157,
+    "val": 0.0011097239561659038,
+    "test": 0.002040261153427639
+  },
+  "evaluation_date": "2025-07-22T10:29:35.099544",
+  "dataset_sizes": {
+    "train": 22881,
+    "validation": 2860,
+    "test": 2861
+  }
+}

@@ -400,6 +400,6 @@ FodyWeavers.xsd
 *.sln.iml
 
 # Ignore folders
-/dataset/processed/landmarks/
-/dataset/raw_data/
+/dataset/processed/*
+/dataset/raw_data/*
 /references/

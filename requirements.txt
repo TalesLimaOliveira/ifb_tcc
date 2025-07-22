@@ -5,9 +5,6 @@ numpy
 pyarrow
 streamlit
 Pillow
-torch
-torchvision
-torchaudio
 transformers
 tqdm
 scikit-learn
@@ -16,3 +13,6 @@ cachetools
 beautifulsoup4
 lxml
 requests
+torch
+torchvision
+torchaudio
