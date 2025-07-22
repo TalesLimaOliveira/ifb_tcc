@@ -1,38 +1,42 @@
-# Configuration for LIBRAS to Portuguese application
+# Configurações Otimizadas - LIBRAS Translator v2.0
 
-# Model hyperparameters (must match training configuration)
+# Parâmetros do modelo (devem coincidir com o treinamento)
 MODEL_CONFIG = {
-    "n_points": 21,          # Number of hand points
-    "emb_size": 128,         # Embedding size
-    "hidden_size": 256,      # LSTM hidden layer size
-    "num_layers": 1,         # Number of LSTM layers
-    "dropout": 0.5           # Dropout rate
+    "n_points": 21,          
+    "emb_size": 128,         
+    "hidden_size": 256,      
+    "num_layers": 1,         
+    "dropout": 0.5           
 }
 
-# MediaPipe configuration
+# Configuração MediaPipe otimizada
 MEDIAPIPE_CONFIG = {
     "static_image_mode": False,
     "max_num_hands": 2,
-    "min_detection_confidence": 0.5,
-    "min_tracking_confidence": 0.5
+    "min_detection_confidence": 0.7,    
+    "min_tracking_confidence": 0.7,     
+    "model_complexity": 0                
 }
 
-# Interface configuration
+# Configuração de interface otimizada
 UI_CONFIG = {
-    "max_frames_video": 100,
-    "camera_fps": 30,
-    "sequence_length": 30,    # Maximum number of frames for temporal sequence
-    "min_sequence_length": 5  # Minimum number of frames to make prediction
+    "max_frames_video": 60,        
+    "camera_fps": 15,              
+    "sequence_length": 20,         
+    "min_sequence_length": 3,      
+    "frame_skip": 2,               
+    "batch_size": 1                
 }
 
-# Available models (in priority order)
+# Modelos disponíveis (ordem de prioridade)
 MODEL_FILES = [
     "best_model.pt",
+    "model_270625.pt",
     "best_model_270625.pt", 
     "sign2text_model.pt"
 ]
 
-# Tokenizer configuration
+# Configuração do tokenizer
 TOKENIZER_CONFIG = {
     "model_name": "neuralmind/bert-base-portuguese-cased",
     "add_special_tokens": False

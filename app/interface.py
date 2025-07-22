@@ -1,15 +1,12 @@
 """
-User Interface Module for LIBRAS Translation
+Interface de Usuario para Tradução de LIBRAS
 
-This module contains all Streamlit UI components and user interaction logic
-for the LIBRAS to Portuguese translation application.
-
-Components:
-- UIManager: Main interface manager
-- CameraInterface: Webcam processing interface
-- ImageInterface: Image upload processing interface
-- VideoInterface: Video upload processing interface
-- FeedbackManager: User feedback collection and logging
+Componentes:
+- UIManager: Gerenciador principal da interface
+- CameraInterface: Interface para webcam
+- ImageInterface: Interface para upload de imagens
+- VideoInterface: Interface para upload de vídeos
+- FeedbackManager: Coleta de feedback do usuário
 """
 
 import streamlit as st
@@ -194,17 +191,19 @@ class CameraInterface:
                     caption="Live Camera Feed"
                 )
                 
-                # Real-time translation
-                if real_time_translation and len(landmarks_sequence) >= 5:
-                    predicted_text = self.model_manager.predict(landmarks_sequence)
-                    translation_placeholder.markdown(f"**Translation:** {predicted_text}")
+                # Real-time translation (menos frequente para otimização)
+                if real_time_translation and len(landmarks_sequence) >= 3:
+                    # Fazer predição apenas a cada 10 frames para economizar processamento
+                    if len(landmarks_sequence) % 5 == 0:
+                        predicted_text = self.model_manager.predict(landmarks_sequence[-10:])  # Usar apenas últimos 10 frames
+                        translation_placeholder.markdown(f"**Tradução:** {predicted_text}")
                 elif not real_time_translation:
-                    translation_placeholder.markdown("**Real-time translation disabled**")
+                    translation_placeholder.markdown("**Tradução em tempo real desabilitada**")
                 else:
-                    translation_placeholder.markdown("**Collecting hand gestures...**")
+                    translation_placeholder.markdown("**Coletando gestos de mãos...**")
                 
-                # Small delay to prevent overwhelming the system
-                time.sleep(0.1)
+                # Delay otimizado
+                time.sleep(0.05)
         
         finally:
             cap.release()
@@ -373,30 +372,36 @@ class VideoInterface:
             progress_bar = st.progress(0)
             status_text = st.empty()
             
-            # Process video frames
+            # Process video frames with optimization
             frame_count = 0
+            from config import UI_CONFIG
+            frame_skip = UI_CONFIG.get("frame_skip", 2)
+            
             for frame_num, processed_frame, landmarks_data, has_hands in \
-                self.video_processor.process_video_file(temp_path, max_frames):
+                self.video_processor.process_video_file(temp_path, max_frames, frame_skip):
                 
                 # Update progress
                 progress = min(frame_count / max_frames, 1.0)
                 progress_bar.progress(progress)
-                status_text.text(f"Processing frame {frame_num + 1}...")
+                status_text.text(f"Processando frame {frame_num + 1}...")
                 
-                # Display current frame
-                video_placeholder.image(
-                    processed_frame,
-                    channels="BGR",
-                    use_container_width=True,
-                    caption=f"Frame {frame_num + 1}"
-                )
+                # Display current frame (menos frequente para otimização)
+                if frame_count % 3 == 0:  # Mostrar apenas alguns frames
+                    video_placeholder.image(
+                        processed_frame,
+                        channels="BGR",
+                        use_container_width=True,
+                        caption=f"Frame {frame_num + 1}"
+                    )
                 
-                # Collect landmarks
+                # Collect landmarks only from frames with hands
                 if has_hands:
                     landmarks_sequence.append(landmarks_data)
                 
                 frame_count += 1
-                time.sleep(0.05)  # Small delay for visual feedback
+                
+                # Smaller delay for better responsiveness
+                time.sleep(0.01)
             
             # Final processing
             progress_bar.progress(1.0)

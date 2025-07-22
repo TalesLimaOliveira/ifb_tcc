@@ -5,14 +5,3 @@ numpy
 pyarrow
 streamlit
 Pillow
-transformers
-tqdm
-scikit-learn
-openai
-cachetools
-beautifulsoup4
-lxml
-requests
-torch
-torchvision
-torchaudio

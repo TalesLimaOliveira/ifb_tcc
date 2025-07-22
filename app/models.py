@@ -1,16 +1,15 @@
 """
-Neural Network Models Module for LIBRAS Translation
+Modelos de Rede Neural para Tradução de LIBRAS
 
-This module contains the neural network architectures used for translating
-LIBRAS (Brazilian Sign Language) to Portuguese text.
-
-Components:
-- CNNEncoder: Convolutional encoder for landmark features
-- Sign2TextModel: Complete CNN + RNN + FC model for sequence-to-text translation
+Componentes:
+- CNNEncoder: Encoder convolucional para landmarks
+- Sign2TextModel: Modelo CNN + RNN + FC completo
+- ModelManager: Gerenciador para carregar e executar modelos
 """
 
 import torch
 import torch.nn as nn
+import numpy as np
 from transformers import BertTokenizer
 import os
 
@@ -230,12 +229,14 @@ class ModelManager:
         
         return False, None
     
-    def predict(self, landmarks_tensor):
+    def predict(self, landmarks_input):
         """
         Make prediction using the loaded model.
         
         Args:
-            landmarks_tensor (torch.Tensor): Tensor of shape (seq_len, n_points, 3)
+            landmarks_input: Can be either:
+                - torch.Tensor of shape (seq_len, n_points, 3) or (seq_len, max_hands, n_points, 3)
+                - List of numpy arrays from MediaPipe processing
         
         Returns:
             str: Predicted text or error message
@@ -246,25 +247,118 @@ class ModelManager:
         try:
             self.model.eval()
             with torch.no_grad():
-                # Add batch dimension if missing
-                if landmarks_tensor.ndim == 3:
-                    landmarks_tensor = landmarks_tensor.unsqueeze(0)
+                # Convert input to tensor if needed
+                landmarks_tensor = self._prepare_landmarks_tensor(landmarks_input)
                 
+                if landmarks_tensor is None:
+                    return "Invalid landmarks data"
+                
+                # Move to device
                 landmarks_tensor = landmarks_tensor.to(self.device)
                 
+                # Forward pass
                 outputs = self.model(landmarks_tensor)
-                predicted_ids = torch.argmax(outputs, dim=-1).squeeze().cpu().numpy()
+                
+                # Get predictions - use the last timestep or aggregate
+                if outputs.dim() == 3:  # (batch, seq_len, vocab_size)
+                    # Use mean pooling across sequence length for better results
+                    outputs = outputs.mean(dim=1)  # (batch, vocab_size)
+                
+                predicted_ids = torch.argmax(outputs, dim=-1).cpu().numpy()
+                
+                # Handle batch dimension
+                if predicted_ids.ndim > 1:
+                    predicted_ids = predicted_ids[0]  # Take first batch
+                
+                # Convert to list if single value
+                if predicted_ids.ndim == 0:
+                    predicted_ids = [int(predicted_ids)]
+                else:
+                    predicted_ids = predicted_ids.tolist()
                 
                 # Decode using tokenizer
                 predicted_text = self.tokenizer.decode(
                     predicted_ids, 
-                    skip_special_tokens=True
+                    skip_special_tokens=True,
+                    clean_up_tokenization_spaces=True
                 )
-            
-            return predicted_text.strip() or "No translation available"
+                
+                # Clean up output
+                predicted_text = predicted_text.strip()
+                return predicted_text if predicted_text else "Nenhuma tradução disponível"
             
         except Exception as e:
-            return f"Prediction error: {str(e)}"
+            print(f"Prediction error: {str(e)}")
+            import traceback
+            traceback.print_exc()
+            return f"Erro na predição: {str(e)}"
+    
+    def _prepare_landmarks_tensor(self, landmarks_input):
+        """
+        Convert landmarks input to the expected tensor format.
+        
+        Args:
+            landmarks_input: Various formats of landmarks data
+        
+        Returns:
+            torch.Tensor: Tensor of shape (1, seq_len, n_points, 3) or None if invalid
+        """
+        try:
+            # If already a tensor
+            if torch.is_tensor(landmarks_input):
+                landmarks_tensor = landmarks_input
+            else:
+                # Convert list/numpy to tensor
+                if isinstance(landmarks_input, list):
+                    if len(landmarks_input) == 0:
+                        return None
+                    
+                    # Handle list of numpy arrays (typical MediaPipe output)
+                    landmarks_array = np.array(landmarks_input)
+                    
+                    # Expected shape after conversion: (seq_len, max_hands, n_points, 3)
+                    if landmarks_array.ndim == 4:  # (seq_len, max_hands, n_points, 3)
+                        # Combine both hands by taking mean or concatenating
+                        if landmarks_array.shape[1] == 2:  # 2 hands
+                            # Take the mean of both hands for simplicity
+                            landmarks_array = np.mean(landmarks_array, axis=1)  # (seq_len, n_points, 3)
+                        elif landmarks_array.shape[1] == 1:  # 1 hand
+                            landmarks_array = landmarks_array.squeeze(1)  # (seq_len, n_points, 3)
+                    
+                    landmarks_tensor = torch.from_numpy(landmarks_array).float()
+                else:
+                    # Try to convert numpy array directly
+                    landmarks_array = np.array(landmarks_input)
+                    landmarks_tensor = torch.from_numpy(landmarks_array).float()
+            
+            # Ensure correct dimensions
+            if landmarks_tensor.ndim == 2:  # (n_points, 3) - single frame
+                landmarks_tensor = landmarks_tensor.unsqueeze(0)  # (1, n_points, 3)
+            
+            if landmarks_tensor.ndim == 3:  # (seq_len, n_points, 3)
+                landmarks_tensor = landmarks_tensor.unsqueeze(0)  # (1, seq_len, n_points, 3)
+            
+            # Validate final shape
+            expected_shape = (1, -1, self.model_config["n_points"], 3)  # -1 for variable seq_len
+            if landmarks_tensor.shape[0] != 1 or landmarks_tensor.shape[2] != expected_shape[2] or landmarks_tensor.shape[3] != 3:
+                print(f"Warning: Unexpected tensor shape {landmarks_tensor.shape}, expected {expected_shape}")
+                
+                # Try to fix common shape issues
+                if landmarks_tensor.shape[2] != self.model_config["n_points"]:
+                    # If we have more points, take the first n_points
+                    if landmarks_tensor.shape[2] > self.model_config["n_points"]:
+                        landmarks_tensor = landmarks_tensor[:, :, :self.model_config["n_points"], :]
+                    else:
+                        # If we have fewer points, pad with zeros
+                        padding = torch.zeros(landmarks_tensor.shape[0], landmarks_tensor.shape[1], 
+                                            self.model_config["n_points"] - landmarks_tensor.shape[2], 3)
+                        landmarks_tensor = torch.cat([landmarks_tensor, padding], dim=2)
+            
+            return landmarks_tensor
+            
+        except Exception as e:
+            print(f"Error preparing landmarks tensor: {str(e)}")
+            return None
     
     def get_model_info(self):
         """

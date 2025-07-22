@@ -1,6 +1,4 @@
-"""
-Simple test to verify basic Streamlit functionality
-"""
+
 
 import streamlit as st
 import torch

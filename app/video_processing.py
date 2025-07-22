@@ -1,14 +1,11 @@
 """
-Video Processing Module for LIBRAS Translation
+Módulo de Processamento de Vídeo para Tradução de LIBRAS
 
-This module handles all video, image, and camera processing operations
-including MediaPipe hand landmark detection and OpenCV operations.
-
-Components:
-- MediaPipeProcessor: Handles MediaPipe initialization and landmark extraction
-- VideoProcessor: Processes video files and camera streams
-- ImageProcessor: Handles static image processing
-- LandmarkVisualizer: Draws landmarks on images/frames
+Componentes:
+- MediaPipeProcessor: Processamento MediaPipe e extração de landmarks
+- VideoProcessor: Processamento de vídeos e streams de câmera
+- ImageProcessor: Processamento de imagens estáticas
+- LandmarkVisualizer: Visualização de landmarks
 """
 
 import cv2
@@ -49,13 +46,14 @@ class MediaPipeProcessor:
         self.mp_hands = mp.solutions.hands
         self.mp_drawing = mp.solutions.drawing_utils
         
-        # Initialize hands detector with error handling
+        # Initialize hands detector with error handling and optimization
         try:
             self.hands = self.mp_hands.Hands(
                 static_image_mode=config.get("static_image_mode", False),
                 max_num_hands=config.get("max_num_hands", 2),
-                min_detection_confidence=config.get("min_detection_confidence", 0.5),
-                min_tracking_confidence=config.get("min_tracking_confidence", 0.5)
+                min_detection_confidence=config.get("min_detection_confidence", 0.7),
+                min_tracking_confidence=config.get("min_tracking_confidence", 0.7),
+                model_complexity=config.get("model_complexity", 0)  # 0 for better performance
             )
         except Exception as e:
             raise RuntimeError(f"Failed to initialize MediaPipe Hands: {e}")

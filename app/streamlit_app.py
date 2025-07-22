@@ -1,14 +1,14 @@
 """
 LIBRAS to Portuguese Neural Translator - Main Application
 
-This is the main Streamlit application file for the LIBRAS translation system.
-It coordinates all modules and provides a clean interface for users.
+Sistema otimizado de tradução de LIBRAS para português usando redes neurais.
 
 Usage:
     streamlit run streamlit_app.py
 
 Author: Tales Lima Oliveira
-Date: June 2025
+Date: Julho 2025
+Version: 2.0 (Otimizada)
 """
 
 import streamlit as st
@@ -38,6 +38,7 @@ def setup_environment():
 # Call setup function at the beginning
 setup_environment()
 
+        
 # --- Page Configuration ---
 
 st.set_page_config(
@@ -46,6 +47,21 @@ st.set_page_config(
     layout="wide",
     initial_sidebar_state="expanded"
 )
+
+# Add caching for better performance
+@st.cache_resource
+def load_model_manager():
+    """Cache the model manager to avoid reloading"""
+    return ModelManager(MODEL_CONFIG, TOKENIZER_MODEL, DEVICE)
+
+@st.cache_resource  
+def load_video_processors():
+    """Cache video processors to avoid reinitializing MediaPipe"""
+    mp_processor = MediaPipeProcessor(MEDIAPIPE_CONFIG)
+    visualizer = LandmarkVisualizer(mp_processor.mp_hands, mp_processor.mp_drawing)
+    video_processor = VideoProcessor(mp_processor, visualizer)
+    image_processor = ImageProcessor(mp_processor, visualizer)
+    return mp_processor, visualizer, video_processor, image_processor
 
 # --- Global Constants ---
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -56,44 +72,57 @@ TOKENIZER_MODEL = TOKENIZER_CONFIG["model_name"]
 def initialize_application():
     """
     Initializes and returns all application components.
-    Caches components in st.session_state to avoid re-initialization.
+    Uses caching to avoid re-initialization and improve performance.
     """
     if 'initialized' in st.session_state and st.session_state.initialized:
         return st.session_state.model_manager, st.session_state.ui_manager
 
     try:
-        # Initialize and cache components
-        model_manager = ModelManager(MODEL_CONFIG, TOKENIZER_MODEL, DEVICE)
-        tokenizer = model_manager.load_tokenizer()
-        if tokenizer is None:
-            st.error("Falha ao carregar o tokenizer.")
-            return None, None
+        with st.spinner("Inicializando aplicação..."):
+            # Use cached model manager
+            model_manager = load_model_manager()
+            
+            # Load tokenizer with progress
+            st.text("Carregando tokenizer...")
+            if not hasattr(model_manager, 'tokenizer') or model_manager.tokenizer is None:
+                tokenizer = model_manager.load_tokenizer()
+                if tokenizer is None:
+                    st.error("Falha ao carregar o tokenizer.")
+                    return None, None
 
-        model = model_manager.initialize_model(tokenizer.vocab_size)
-        if model is None:
-            st.error("Falha ao inicializar o modelo.")
-            return None, None
+            # Initialize model with progress
+            st.text("Inicializando modelo...")
+            if model_manager.model is None:
+                model = model_manager.initialize_model(model_manager.tokenizer.vocab_size)
+                if model is None:
+                    st.error("Falha ao inicializar o modelo.")
+                    return None, None
 
-        success, _ = model_manager.load_pretrained_weights()
-        if not success:
-            st.warning("Nenhum modelo pré-treinado encontrado. O modelo não foi treinado.")
+                # Load pretrained weights
+                st.text("Carregando pesos do modelo...")
+                success, loaded_path = model_manager.load_pretrained_weights()
+                if success:
+                    st.success(f"Modelo carregado: {os.path.basename(loaded_path)}")
+                else:
+                    st.warning("Nenhum modelo pré-treinado encontrado.")
 
-        mp_processor = MediaPipeProcessor(MEDIAPIPE_CONFIG)
-        visualizer = LandmarkVisualizer(mp_processor.mp_hands, mp_processor.mp_drawing)
-        video_processor = VideoProcessor(mp_processor, visualizer)
-        image_processor = ImageProcessor(mp_processor, visualizer)
-        ui_manager = UIManager(model_manager, video_processor, image_processor)
+            # Use cached processors
+            st.text("Inicializando processadores de vídeo...")
+            mp_processor, visualizer, video_processor, image_processor = load_video_processors()
+            ui_manager = UIManager(model_manager, video_processor, image_processor)
 
-        # Store in session state
-        st.session_state.model_manager = model_manager
-        st.session_state.ui_manager = ui_manager
-        st.session_state.initialized = True
+            # Store in session state
+            st.session_state.model_manager = model_manager
+            st.session_state.ui_manager = ui_manager
+            st.session_state.initialized = True
 
-        return model_manager, ui_manager
+            st.success("Aplicação inicializada com sucesso!")
+            return model_manager, ui_manager
 
     except Exception as e:
         st.error(f"Falha na inicialização da aplicação: {e}")
-        st.code(traceback.format_exc())
+        with st.expander("Detalhes do erro"):
+            st.code(traceback.format_exc())
         st.session_state.initialized = False
         return None, None
 
